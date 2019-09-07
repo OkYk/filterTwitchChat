@@ -14,6 +14,15 @@ const blockOneWord = false;
 const allowEmotesNumber = 3;
 const spamCoeff=14;
 const minlength=4;
+const blockPepe=true;
+
+const noBadges=true;
+const leaveModAlone=true;
+
+const freqHold=50;
+const allowedPerBuffer=2;
+const freqMap=new Map();
+const stack = [];
 
 function CanShow(message, emotes, sender, myUsername) {
     if(blockEmotesOnly && message.length<=0){
@@ -23,6 +32,11 @@ function CanShow(message, emotes, sender, myUsername) {
 
     if(lengthLimit>0 && message.length>lengthLimit){
       console.log("Filter by length["+lengthLimit+"]: "+message);
+      return false;
+    }
+
+    if(message.toLowerCase().indexOf("pepe")!=-1 || message.toLowerCase().indexOf("gachi")!=-1){
+      console.log("No pepe:"+message);
       return false;
     }
 
@@ -62,6 +76,20 @@ function CanShow(message, emotes, sender, myUsername) {
         }
     }
 
+    if(stack.length>=freqHold){
+        freqMap.delete(stack.pop());
+    }
+    if(freqMap.has(message)){
+        freqMap.set(message,freqMap.get(message)+1);
+    } else {
+        freqMap.set(message,1);
+        stack.push(message);
+    }
+    if (freqMap.get(message)>allowedPerBuffer){
+        console.log("Filter frequncy: "+message);
+        return false;
+    }
+
     return message.toLowerCase().indexOf(myUsername) > -1;
 }
 
@@ -79,6 +107,17 @@ $(document).ready(function() {
               $(this).show();
               return;
             }
+
+            if(noBadges)
+                $("span:has(img.chat-badge)").each(function() {
+                    if(!leaveModAlone)
+                       this.remove();
+                    else jQuery(this).find('img').each(function(){
+                       if(this.attributes.getNamedItem('alt').value!='Moderator'){
+                           this.remove();
+                       }
+                    });
+                });
 
             var message = $("span[data-a-target='chat-message-text']", this);
             var sender = $(".chat-author__display-name", this).text().toLowerCase();
